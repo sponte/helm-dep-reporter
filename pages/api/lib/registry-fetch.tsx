@@ -1,6 +1,6 @@
 import { parsers } from 'www-authenticate'
 import { match } from 'semver-match'
-import { RequestInit } from 'node-fetch'
+import { RequestInit, Response } from 'node-fetch'
 import { fetchBuilder, FileSystemCache } from 'node-fetch-cache';
 
 import fs from 'fs';
@@ -19,7 +19,7 @@ function ociToHttps(url: string, path: string) {
   return urlToFetch
 }
 
-async function request(url: string, redirectUrls: string[], options?: RequestInit) {
+async function request(url: string, redirectUrls: string[], options?: RequestInit): Promise<Response> {
   redirectUrls.push(url)
 
   let requestOptions: RequestInit | null | undefined = { ...options }; // { ...options }
@@ -48,6 +48,7 @@ async function request(url: string, redirectUrls: string[], options?: RequestIni
     retryCount++
   }
 
+  console.debug('Response length', response.headers.get('content-length'))
   return response
 }
 interface IRetrieveOptions {
@@ -61,7 +62,7 @@ enum DownloadType {
   ImageManifest = 'application/vnd.oci.image.manifest.v1+json'
 }
 
-export default async function retrieve(url: string, redirectURLs: string[], version: string = "*", options?: IRetrieveOptions): Promise<any> {
+export default async function retrieve(url: string, redirectURLs: string[], version: string = "*", options?: IRetrieveOptions): Promise<void | Response> {
   let urlToFetch = url;
 
   const requestOptions = {
@@ -71,10 +72,6 @@ export default async function retrieve(url: string, redirectURLs: string[], vers
 
   if (url.startsWith('oci://')) {
     const urlToFetch = ociToHttps(url, '/tags/list')
-
-    const mediaType = options?.downloadConfig ?
-      DownloadType.Config :
-      DownloadType.Chart
 
     return request(urlToFetch, redirectURLs, requestOptions)
       .then(r => {

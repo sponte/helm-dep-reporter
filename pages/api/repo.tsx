@@ -11,7 +11,7 @@ const yamlParsingCache = new Cache({
 })
 
 const yamlParse = (data: string) => {
-  console.log('yamlParse')
+  console.debug('yamlParse')
   return parse(data);
 }
 
@@ -20,9 +20,11 @@ const parseYamlWithCache = (cacheKey: string, data: string) => {
     .get(cacheKey)
     .then(v => {
       if (!v) {
+        console.debug('No cache found, parsing yaml')
         return yamlParse(data)
       }
 
+      console.debug('Cache found, returning')
       return v
     })
     .then((dataObject: any) => {
@@ -110,7 +112,7 @@ export async function retrieveHelmRepositoryDetails(originalURL: string, req: Ne
 
   const dataPromise = new Promise<IHelmRepository>(resolve => {
     if (headRequest) {
-      resolve({
+      return resolve({
         apiVersion: 'v1',
         entries: {},
         generated: new Date().toISOString(),
@@ -118,11 +120,20 @@ export async function retrieveHelmRepositoryDetails(originalURL: string, req: Ne
       });
     }
 
+    if (!response) {
+      return resolve({
+        apiVersion: 'v1',
+        entries: {},
+        generated: new Date().toISOString(),
+        comments: 'No response'
+      })
+    }
+
     // resolve(response.text().then((data: string) => {
     //   const returnValue = data
     //   return returnValue;
     // }));
-    resolve(response.text().then((rt: string) => parseYamlWithCache(response.url, rt)).then((data: IHelmRepository) => {
+    resolve(response.text().then((rt: string) => parseYamlWithCache(response!.url, rt)).then((data: IHelmRepository) => {
       const returnValue = {
         apiVersion: data.apiVersion,
         entries: {
