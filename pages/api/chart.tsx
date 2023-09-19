@@ -46,12 +46,25 @@ export default async function apiChartHandler(
     },
   })
 
-  response.body.pipe(writeStream)
+  if (!response) {
+    return res
+      .status(404)
+      .json({
+        contentType: null,
+        dataSize: -1,
+        numberOfCharts: -1,
+        redirectUrls,
+        charts,
+        chartsYAML
+      })
+  }
+
+  response!.body.pipe(writeStream)
     .on('close', () => {
       res
-        .status(response.status)
+        .status(response!.status)
         .json({
-          contentType: response.headers.get('content-type'),
+          contentType: response!.headers.get('content-type'),
           dataSize: charts.length || -1,
           numberOfCharts: charts.length,
           redirectUrls,
