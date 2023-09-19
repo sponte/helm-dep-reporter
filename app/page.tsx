@@ -1,113 +1,117 @@
-import Image from 'next/image'
+'use client';
+import { ChangeEvent, FormEvent, useCallback, useRef, useState } from 'react';
+import { Button, Container, Form, InputGroup } from 'react-bootstrap';
+import { Log } from './components/Log';
+import { useRouter } from 'next/navigation';
+import useLocalStorage from '@/lib/UseLocalStorage';
+import { onlyUnique } from './onlyUnique';
+import { RecentHelmRepositories } from './RecentHelmRepositories';
+
+const logger = Log(Home);
 
 export default function Home() {
+  const router = useRouter()
+  const [recentHelmRepos, setRecentHelmRepos] = useLocalStorage('recentHelmRepositories', [])
+  const [repo, setRepo] = useState("https://helm.camunda.io/");
+  const [validated, setValidated] = useState(false);
+  const [error, setError] = useState<string>();
+
+  logger('%s', repo)
+
+  // useEffect(() => {
+  //   if (isInitialMount.current) {
+  //     isInitialMount.current = false;
+  //     return;
+  //   }
+
+  //   logger('useEffect %s', repo)
+
+  //   if (repo.match(/(https?|oci):\/\/[^/]+/i)) {
+  //     setRepoDetails(repo)
+  //   }
+  // }, [repo]);
+
+  const checkRepoUrl = async (e: ChangeEvent<any>) => {
+    const url = e.target?.value
+
+    setValidated(true)
+    setRepo(url)
+    setError(undefined)
+    e.target.setCustomValidity('')
+
+    const browserValidation = e.target.checkValidity()
+    logger('e.target.checkValidity()', browserValidation)
+
+    if (!browserValidation) {
+      logger('invalid url')
+      setError('Please enter a valid URL')
+      e.target.setCustomValidity('Please enter a valid URL')
+      return
+    }
+
+    if (!url.match(/^(https?:\/\/|oci:\/\/)/)) {
+      setError('The url must start with either https:// or oci://')
+      e.target.setCustomValidity('The url must start with either https:// or oci://')
+      return
+    }
+
+    logger('Checking URL', url)
+    const response = await fetch('/api/repo?head&url=' + url)
+    if (response.status !== 200) {
+      setError('Could not find index.yaml at ' + url)
+      e.target.setCustomValidity('Could not find index.yaml at ' + url)
+    }
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const form = event.currentTarget;
+    setValidated(true);
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!form.checkValidity()) {
+      return
+    }
+
+    setRecentHelmRepos((prev: string[]) => [repo].concat(prev).filter(onlyUnique).slice(-10))
+
+    logger('form.checkValidity()', form.checkValidity())
+    router.push('/repository?url=' + repo)
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <Container>
+      <Form
+        className='mt-5'
+        noValidate
+        validated={validated}
+        action='/repository'
+        method='get'
+        onSubmit={handleSubmit}>
+        <Form.Group>
+          <InputGroup>
+            <Form.Control
+              required
+              type='URL'
+              name='url'
+              value={repo}
+              onChange={e => checkRepoUrl(e)}
+              placeholder='Enter Helm repository or oci:// chart URL'
+              isInvalid={error !== undefined}
             />
-          </a>
-        </div>
-      </div>
+            <Button
+              type='submit'
+            >Inspect</Button>
+            <Form.Control.Feedback type="invalid" hidden={error === undefined}>
+              {error}
+            </Form.Control.Feedback>
+          </InputGroup>
+        </Form.Group>
+      </Form>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+      <RecentHelmRepositories className='mt-3' />
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    </Container>
+  );
 }
+
