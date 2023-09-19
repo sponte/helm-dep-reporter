@@ -5,7 +5,7 @@ import { Cache } from 'file-system-cache';
 import fs from 'fs';
 
 const yamlParsingCache = new Cache({
-  basePath: fs.mkdtempSync('./.fetch-cache'),
+  basePath: fs.mkdtempSync('/tmp/.fetch-cache'),
   ns: 'yaml',
   ttl: 60 * 60 * 24 * 7 // 1 week
 })

@@ -6,7 +6,7 @@ import { fetchBuilder, FileSystemCache } from 'node-fetch-cache';
 import fs from 'fs';
 
 const fetch = fetchBuilder.withCache(new FileSystemCache({
-  cacheDirectory: fs.mkdtempSync('./.fetch-cache'),
+  cacheDirectory: fs.mkdtempSync('/tmp/.fetch-cache'),
   ttl: 60 * 60 * 1000 // 1 hour,
 }));
 
