@@ -2,9 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { parse } from 'yaml';
 import retrieve from './lib/registry-fetch'
 import { Cache } from 'file-system-cache';
+import fs from 'fs';
 
 const yamlParsingCache = new Cache({
-  basePath: '.yaml-cache',
+  basePath: fs.mkdtempSync('./.fetch-cache'),
   ns: 'yaml',
   ttl: 60 * 60 * 24 * 7 // 1 week
 })
