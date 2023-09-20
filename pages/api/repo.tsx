@@ -81,7 +81,7 @@ export default async function apiRepoHandler(
   const originalURL = req.query.url as string;
   const headRequest = Object.keys(req.query).indexOf('head') !== -1
 
-  var { response, redirectUrls, dataPromise }: { response: any; redirectUrls: string[]; dataPromise: Promise<IHelmRepository>; } = await retrieveHelmRepositoryDetails(originalURL, req, headRequest);
+  const { response, redirectUrls, dataPromise }: { response: any; redirectUrls: string[]; dataPromise: Promise<IHelmRepository>; } = await retrieveHelmRepositoryDetails(originalURL, req, headRequest);
 
   res
     .status(response.status)

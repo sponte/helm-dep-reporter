@@ -24,7 +24,7 @@ export function UrlTest({ url, chartRequest, domainsCallback }: UrlTestProps) {
         setUrlStatus(urlStatus)
         domainsCallback(urlStatus.redirectUrls)
       });
-  }, [url, domainsCallback]);
+  }, [url, domainsCallback, chartRequest]);
 
   if (!urlStatus) return <div>Verifying url...</div>;
 

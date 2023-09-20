@@ -15,27 +15,27 @@ export interface HelmChartDependencyProps {
 }
 
 export function HelmChartDependency({ dependency, charts, domainsCallback, repositoryUrl, fetchDetails }: HelmChartDependencyProps) {
-  const getInternalChart = (name: string) => {
-    return charts
-      ?.find((c: any) => c.name === name);
-  };
-
   const [error, setChartRetrievalError] = useState<string>();
   const [chart, setChart] = useState<IHelmChart>();
   const [chartYAML, setChartYAML] = useState('');
 
-  const retrieveChart = (url: string) => {
-    return fetch(url)
-      .then(r => r.json())
-      .then(r => {
-        domainsCallback(r.redirectUrls);
-        setChart(r.charts[0]);
-        setChartYAML(r.chartsYAML[0]);
-      });
-  };
-
   useEffect(() => {
     if (!fetchDetails) return;
+
+    const getInternalChart = (name: string) => {
+      return charts
+        ?.find((c: any) => c.name === name);
+    };
+
+    const retrieveChart = (url: string) => {
+      return fetch(url)
+        .then(r => r.json())
+        .then(r => {
+          domainsCallback(r.redirectUrls);
+          setChart(r.charts[0]);
+          setChartYAML(r.chartsYAML[0]);
+        });
+    };
 
     if (dependency.repository === "") {
       setChart(getInternalChart(dependency.name));
@@ -62,7 +62,7 @@ export function HelmChartDependency({ dependency, charts, domainsCallback, repos
         .catch(e => setChartRetrievalError('Could not retrieve chart details'));
     }
 
-  }, [fetchDetails, dependency, setChartRetrievalError, setChart, setChartYAML, domainsCallback]);
+  }, [fetchDetails, dependency, setChartRetrievalError, setChart, setChartYAML, domainsCallback, charts]);
 
   if (!charts) {
     return <Alert className="mt-3">No charts</Alert>;

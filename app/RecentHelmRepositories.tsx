@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import { Row, Spinner } from "react-bootstrap";
 
 export function RecentHelmRepositories(props: React.HTMLAttributes<HTMLElement>) {
-  const [recentHelmReposLS, setRecentHelmReposLS] = useLocalStorage('recentHelmRepositories', [])
+  const [recentHelmReposLS] = useLocalStorage('recentHelmRepositories', [])
   const [recentHelmRepos, setRecentHelmRepos] = useState([])
 
   useEffect(() => {
     setRecentHelmRepos(recentHelmReposLS)
-  }, [])
+  }, [recentHelmReposLS])
 
   if (!recentHelmRepos.length) return <Row {...props}>
     <Spinner animation="border" variant="primary" />

@@ -24,7 +24,6 @@ export default async function apiChartHandler(
   let response = await retrieve(originalURL, redirectUrls, req.query.version as string, retrieveOptions)
   let charts: any[] = [];
   let chartsYAML: string[] = [];
-  // let data = await response.arrayBuffer();
 
   const writeStream = new tar.Parse({
     filter: (path, entry) => path.toLowerCase().endsWith('chart.yaml'),

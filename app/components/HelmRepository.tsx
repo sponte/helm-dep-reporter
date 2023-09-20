@@ -1,6 +1,6 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import smeverMatch from 'semver-match';
-import { Accordion, AccordionContext, Alert, Container, Form, Spinner } from "react-bootstrap";
+import { Accordion, Container, Spinner } from "react-bootstrap";
 import HelmChart from "./HelmChart";
 import { Log } from "./Log";
 
@@ -47,14 +47,14 @@ export function HelmRepository(props: HelmRepositoryProps) {
     } catch (err) {
       console.error('Failed to download repository details');
     }
-  }, [setRedirects, props.domainsCallback]);
+  }, [props]);
 
   useEffect(() => {
     if (!props.repositoryUrl) return;
     if (!props.repositoryUrl.match(/(https?|oci):\/\/[^/]+/i)) return;
 
     getHelmRepositoryDetails(props.repositoryUrl, props.name, props.version);
-  }, [props.repositoryUrl, getHelmRepositoryDetails]);
+  }, [props.repositoryUrl, getHelmRepositoryDetails, props.name, props.version]);
 
 
   if (loading) return <Container>

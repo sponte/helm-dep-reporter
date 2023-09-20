@@ -11,7 +11,7 @@ const logger = Log(Home);
 
 export default function Home() {
   const router = useRouter()
-  const [recentHelmRepos, setRecentHelmRepos] = useLocalStorage('recentHelmRepositories', [])
+  const [, setRecentHelmRepos] = useLocalStorage('recentHelmRepositories', [])
   const [repo, setRepo] = useState("https://helm.camunda.io/");
   const [validated, setValidated] = useState(false);
   const [error, setError] = useState<string>();
