@@ -17,7 +17,12 @@ export default async function apiChartHandler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-  const originalURL = req.query.url as string;
+  let originalURL = req.query.url as string;
+
+  if (!originalURL.match('(https?|oci)://')) {
+    originalURL = req.query.repositoryUrl + '/' + originalURL
+  }
+
   const redirectUrls: string[] = [];
 
   const retrieveOptions = { headRequest: Object.keys(req.query).indexOf('head') > -1 };

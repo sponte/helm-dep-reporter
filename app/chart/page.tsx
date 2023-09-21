@@ -1,14 +1,15 @@
 'use client';
 import { useSearchParams } from "next/navigation";
-import { HelmRepository } from "../components/HelmRepository";
+import { HelmRepository } from "../../components/HelmRepository";
 import { Alert, Breadcrumb, Container, Row } from "react-bootstrap";
-import HelmChartDetailed from "../components/HelmChartDetailed";
+import HelmChartDetailed from "../../components/HelmChartDetailed";
 
 
 export default function Repository() {
   const searchParams = useSearchParams()
   const chartUrl = searchParams?.get('url')
   const repositoryUrl = searchParams?.get('repositoryUrl')
+  const repositoryHost = repositoryUrl ? new URL(repositoryUrl).hostname : undefined
 
   if (!chartUrl) return <Container>
     <Row>
@@ -27,11 +28,11 @@ export default function Repository() {
   </Container>
 
   return <Container>
-    <Row>
+    <Row className="mt-3">
       <Breadcrumb>
-        <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
-        <Breadcrumb.Item href={"/repository?url=" + searchParams?.get('repositoryUrl')}>Repository</Breadcrumb.Item>
-        <Breadcrumb.Item active href={"/chart?url=" + searchParams?.get('url')}>Chart</Breadcrumb.Item>
+        <Breadcrumb.Item href="/">home</Breadcrumb.Item>
+        <Breadcrumb.Item href={"/repository?url=" + searchParams?.get('repositoryUrl')}>{repositoryHost}</Breadcrumb.Item>
+        <Breadcrumb.Item active href={"/chart?url=" + searchParams?.get('url')}>{"chart"}</Breadcrumb.Item>
       </Breadcrumb>
     </Row>
     <Row>

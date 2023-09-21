@@ -5,6 +5,7 @@ import { IHelmChart, IHelmRepositoryResponse } from "@/pages/api/repo";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { HelmChartDependencies } from "./HelmChartDependencies";
+import { Loader } from "../components/Loader";
 
 export interface HelmChartDependencyProps {
   dependency: any
@@ -12,15 +13,27 @@ export interface HelmChartDependencyProps {
   fetchDetails?: boolean
   charts?: any[]
   domainsCallback: (domains: string[]) => void
+
+  analysisStartedCallback?: (name: string) => void
+  analysisFinishedCallback?: (name: string) => void
 }
 
-export function HelmChartDependency({ dependency, charts, domainsCallback, repositoryUrl, fetchDetails }: HelmChartDependencyProps) {
+export function HelmChartDependency({
+  dependency,
+  charts,
+  domainsCallback,
+  repositoryUrl,
+  fetchDetails,
+  analysisStartedCallback,
+  analysisFinishedCallback,
+}: HelmChartDependencyProps) {
   const [error, setChartRetrievalError] = useState<string>();
   const [chart, setChart] = useState<IHelmChart>();
   const [chartYAML, setChartYAML] = useState('');
 
   useEffect(() => {
     if (!fetchDetails) return;
+
 
     const getInternalChart = (name: string) => {
       return charts
@@ -41,8 +54,10 @@ export function HelmChartDependency({ dependency, charts, domainsCallback, repos
       setChart(getInternalChart(dependency.name));
     }
 
+    analysisStartedCallback?.('Dependency ' + dependency.name);
     if (dependency.repository.startsWith('oci://')) {
-      retrieveChart('/api/chart?url=' + dependency.repository + '/' + dependency.name + '&version=' + dependency.version);
+      retrieveChart('/api/chart?url=' + dependency.repository + '/' + dependency.name + '&version=' + dependency.version)
+        .finally(() => analysisFinishedCallback?.('Dependency ' + dependency.name))
     }
 
     if (dependency.repository.startsWith('https://')) {
@@ -59,39 +74,22 @@ export function HelmChartDependency({ dependency, charts, domainsCallback, repos
             });
         })
         .then(c => retrieveChart('/api/chart?url=' + c?.urls[0]))
-        .catch(e => setChartRetrievalError('Could not retrieve chart details'));
+        .catch(e => setChartRetrievalError('Could not retrieve chart details'))
+        .finally(() => analysisFinishedCallback?.('Dependency ' + dependency.name))
     }
 
-  }, [fetchDetails, dependency, setChartRetrievalError, setChart, setChartYAML, domainsCallback, charts]);
+  }, [fetchDetails, dependency, setChartRetrievalError, setChart, setChartYAML, domainsCallback, charts, analysisStartedCallback, analysisFinishedCallback]);
 
   if (!charts) {
     return <Alert className="mt-3">No charts</Alert>;
   }
 
   return <>
-    {dependency.name} {dependency.version} ({dependency.repository && 'repository: ' + dependency.repository || 'internal'})
-
-    {fetchDetails && !chart && !error && <Spinner animation="border" />}
-    {fetchDetails && chart && <HelmChartDependencies
-      charts={charts}
-      dependencies={chart?.dependencies}
-      domainsCallback={domainsCallback}
-      fetchDetails={fetchDetails}
-      repoUrl={repositoryUrl} />}
-
-    {/* <Accordion className="mt-3" flush>
-          <Accordion.Item eventKey={"0"}>
-            <Accordion.Header>Source</Accordion.Header>
-            <Accordion.Body>
-              <SyntaxHighlighter language="json" style={docco}>
-                {JSON.stringify(chart || dependency, null, 2)}
-              </SyntaxHighlighter>
-            </Accordion.Body>
-          </Accordion.Item>
-        </Accordion> */}
+    {dependency.name} {dependency.version} ({dependency.repository && 'repository: ' + dependency.repository || <span className="text-secondary">internal</span>})
 
     {error && <Alert className="mt-3" variant="danger">{error}</Alert>}
 
+    {fetchDetails && !chart && !error && <Loader>Loading dependency information</Loader>}
     {chartYAML && <Accordion className="mt-3" flush>
       <Accordion.Item eventKey={"0"}>
         <Accordion.Header>YAML source</Accordion.Header>
@@ -104,25 +102,15 @@ export function HelmChartDependency({ dependency, charts, domainsCallback, repos
     </Accordion>}
 
 
-    {/* <pre>
-          {JSON.stringify(chart, null, 2)}
-        </pre> */}
+    {fetchDetails && chart && <HelmChartDependencies
+      analysisStartedCallback={analysisStartedCallback}
+      analysisFinishedCallback={analysisFinishedCallback}
+      charts={charts}
+      dependencies={chart?.dependencies}
+      domainsCallback={domainsCallback}
+      fetchDetails={fetchDetails}
+      repoUrl={repositoryUrl} />}
 
-    {/* <ListGroup>
-          {urls.length > 0 && urls.map(u => <ListGroup.Item key={u}>{u}</ListGroup.Item>
-          )}
-        </ListGroup> */}
 
-    {/* <pre style={{ whiteSpace: 'pre' }}>Chart: {JSON.stringify(dep)}</pre>
-            <pre>URL: {JSON.stringify(dependencyUrls[index])}</pre> */}
-    {/* {
-          dependency.repository === "" && <HelmChart
-            internal
-            domainsCallback={domainsCallback}
-            repositoryUrl={repositoryUrl}
-            chart={getInternalChart(dependency.name)}
-            key={dependency.name + 'internal'}
-          />
-        } */}
   </>;
 }

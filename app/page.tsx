@@ -1,35 +1,41 @@
 'use client';
+
 import { ChangeEvent, FormEvent, useCallback, useRef, useState } from 'react';
 import { Button, Container, Form, InputGroup } from 'react-bootstrap';
-import { Log } from './components/Log';
 import { useRouter } from 'next/navigation';
 import useLocalStorage from '@/lib/UseLocalStorage';
-import { onlyUnique } from './onlyUnique';
-import { RecentHelmRepositories } from './RecentHelmRepositories';
+import { onlyUnique } from '@/components/onlyUnique';
+import { RecentHelmRepositories } from '@/components/RecentHelmRepositories';
+import { Log } from '@/components/Log';
 
 const logger = Log(Home);
 
+const someHelmRepos = [
+  "https://charts.bitnami.com/bitnami",
+  "https://charts.gitlab.io",
+  "https://charts.jetstack.io",
+  "https://grafana.github.io/helm-charts",
+  "https://helm-charts.newrelic.com",
+  "https://helm.camunda.io",
+  "https://helm.cilium.io",
+  "https://helm.gitops.weave.works",
+  "https://helm.goharbor.io",
+  "https://helm.releases.hashicorp.com",
+  "https://helm.traefik.io/traefik",
+  "https://istio-release.storage.googleapis.com/charts",
+  "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
+  "https://kubernetes.github.io/kube-state-metrics",
+  "https://mongodb.github.io/helm-charts",
+  "https://open-policy-agent.github.io/gatekeeper/charts",
+  "https://prometheus-community.github.io/helm-charts",
+]
+
 export default function Home() {
   const router = useRouter()
-  const [, setRecentHelmRepos] = useLocalStorage('recentHelmRepositories', [])
-  const [repo, setRepo] = useState("https://helm.camunda.io/");
+  const [, setRecentHelmRepos] = useLocalStorage('recentHelmRepositories', someHelmRepos)
+  const [repo, setRepo] = useState("");
   const [validated, setValidated] = useState(false);
   const [error, setError] = useState<string>();
-
-  logger('%s', repo)
-
-  // useEffect(() => {
-  //   if (isInitialMount.current) {
-  //     isInitialMount.current = false;
-  //     return;
-  //   }
-
-  //   logger('useEffect %s', repo)
-
-  //   if (repo.match(/(https?|oci):\/\/[^/]+/i)) {
-  //     setRepoDetails(repo)
-  //   }
-  // }, [repo]);
 
   const checkRepoUrl = async (e: ChangeEvent<any>) => {
     const url = e.target?.value
@@ -73,16 +79,15 @@ export default function Home() {
       return
     }
 
-    setRecentHelmRepos((prev: string[]) => [repo].concat(prev).filter(onlyUnique).slice(-10))
+    setRecentHelmRepos((prev: string[]) => [repo].concat(prev).filter(onlyUnique).slice(-25))
 
     logger('form.checkValidity()', form.checkValidity())
     router.push('/repository?url=' + repo)
   };
 
   return (
-    <Container>
+    <Container className='mt-5'>
       <Form
-        className='mt-5'
         noValidate
         validated={validated}
         action='/repository'
@@ -96,7 +101,7 @@ export default function Home() {
               name='url'
               value={repo}
               onChange={e => checkRepoUrl(e)}
-              placeholder='Enter Helm repository or oci:// chart URL'
+              placeholder='Enter Helm Chart repository URL'
               isInvalid={error !== undefined}
             />
             <Button
@@ -109,7 +114,7 @@ export default function Home() {
         </Form.Group>
       </Form>
 
-      <RecentHelmRepositories className='mt-3' />
+      <RecentHelmRepositories className='mt-5' />
 
     </Container>
   );

@@ -3,6 +3,7 @@ import smeverMatch from 'semver-match';
 import { Accordion, Alert, Container, Spinner } from "react-bootstrap";
 import HelmChart from "./HelmChart";
 import { Log } from "./Log";
+import { Loader } from "./Loader";
 
 interface IHelmRepository {
   entries: any[]
@@ -60,10 +61,7 @@ export function HelmRepository(props: HelmRepositoryProps) {
   }, [props.repositoryUrl, getHelmRepositoryDetails, props.name, props.version]);
 
 
-  if (loading) return <Container>
-    <Spinner animation="grow" />
-    Loading charts from {props.repositoryUrl}
-  </Container>
+  if (loading) return <Loader title={`Loading charts from ${props.repositoryUrl}`} />
 
   if (error) return <Alert variant="danger">
     <Alert.Heading>Error retrieving chart</Alert.Heading>

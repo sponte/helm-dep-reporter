@@ -16,7 +16,6 @@ function ociToHttps(url: string, path: string) {
   requestURL.protocol = 'https:';
   requestURL.pathname = "/v2" + requestURL.pathname + path
   let urlToFetch = requestURL.toString().replace(/^oci:\/\//g, 'https://')
-  console.log('urlToFetch', urlToFetch)
   return urlToFetch
 }
 
@@ -33,17 +32,15 @@ async function request(url: string, redirectUrls: string[], options?: RequestIni
   let requestOptions: RequestInit | null | undefined = { ...options }; // { ...options }
   requestOptions.redirect = 'manual'
 
-  console.log('request', url, options)
+  console.log('request', url)
+
   let response = await fetch(url, requestOptions)
 
-  console.log('status', response.status)
   while (response.status >= 300 && response.status < 400) {
     let redirectUrl = response.headers.get('location')
     if (redirectUrl && !redirectUrl?.startsWith('http')) {
       redirectUrl = new URL(redirectUrl, url).toString();
     }
-
-    console.log('redirect', redirectUrl)
 
     redirectUrls.push(redirectUrl!)
     response = await fetch(redirectUrl!, requestOptions)
