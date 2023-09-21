@@ -4,6 +4,7 @@ import { RequestInit, Response } from 'node-fetch'
 import { fetchBuilder, FileSystemCache } from 'node-fetch-cache';
 
 import fs from 'fs';
+import { asyncCallWithTimeout } from './asyncCallWithTimeout';
 
 const fetch = fetchBuilder.withCache(new FileSystemCache({
   cacheDirectory: fs.mkdtempSync('/tmp/.fetch-cache'),
@@ -17,6 +18,13 @@ function ociToHttps(url: string, path: string) {
   let urlToFetch = requestURL.toString().replace(/^oci:\/\//g, 'https://')
   console.log('urlToFetch', urlToFetch)
   return urlToFetch
+}
+
+async function asyncCallWithTimings<T>(fn: () => Promise<T>): Promise<{ result: T, duration: number }> {
+  const start = Date.now();
+  const result = await fn();
+  const duration = Date.now() - start;
+  return { result, duration };
 }
 
 async function request(url: string, redirectUrls: string[], options?: RequestInit): Promise<Response> {
@@ -62,9 +70,16 @@ enum DownloadType {
   ImageManifest = 'application/vnd.oci.image.manifest.v1+json'
 }
 
+
+async function requestWithTimeout<T extends Parameters<typeof request>>(timeout: number, ...args: T): Promise<Response> {
+  return asyncCallWithTimeout(request.apply(null, args), timeout);
+}
+
+
 export default async function retrieve(url: string, redirectURLs: string[], version: string = "*", options?: IRetrieveOptions): Promise<void | Response> {
   let urlToFetch = url;
 
+  const requestTimeout = 5000;
   const requestOptions = {
     method: options?.headRequest ? 'HEAD' : 'GET'
   }
@@ -73,7 +88,7 @@ export default async function retrieve(url: string, redirectURLs: string[], vers
   if (url.startsWith('oci://')) {
     const urlToFetch = ociToHttps(url, '/tags/list')
 
-    return request(urlToFetch, redirectURLs, requestOptions)
+    return requestWithTimeout(requestTimeout, urlToFetch, redirectURLs, requestOptions)
       .then(r => {
         if (r.status === 401) {
           const auth = r.headers.get('www-authenticate');
@@ -81,22 +96,22 @@ export default async function retrieve(url: string, redirectURLs: string[], vers
           console.log('Need to authenticate with', authParsed);
 
           let fetchOptions: RequestInit = { ...requestOptions, headers: {} }
-          return request(authParsed.parms.realm + '?service=' + authParsed.parms.service + '&scope=' + authParsed.parms.scope, redirectURLs, fetchOptions)
+          return requestWithTimeout(requestTimeout, authParsed.parms.realm + '?service=' + authParsed.parms.service + '&scope=' + authParsed.parms.scope, redirectURLs, fetchOptions)
             .then(r => r.json())
             .then(r => {
               fetchOptions.headers = { ...fetchOptions.headers, Authorization: authParsed.scheme + " " + r.token };
-              return request(urlToFetch, redirectURLs, fetchOptions)
+              return requestWithTimeout(requestTimeout, urlToFetch, redirectURLs, fetchOptions)
             })
             .then(r => r.json())
             .then(r => { console.log(r); return r })
             .then(r => match(version, r.tags))
             .then(r => {
               fetchOptions.headers = { ...fetchOptions.headers, Accept: DownloadType.ImageManifest }
-              return request(ociToHttps(url, '/manifests/' + r), redirectURLs, fetchOptions)
+              return requestWithTimeout(requestTimeout, ociToHttps(url, '/manifests/' + r), redirectURLs, fetchOptions)
             })
             .then(r => r.json())
             .then(r => options?.downloadConfig ? r.config : r.layers.find((l: any) => l.mediaType === DownloadType.Chart))
-            .then(r => request(ociToHttps(url, '/blobs/' + r.digest), redirectURLs, fetchOptions))
+            .then(r => requestWithTimeout(requestTimeout, ociToHttps(url, '/blobs/' + r.digest), redirectURLs, fetchOptions))
         }
         return r
       })
@@ -104,5 +119,5 @@ export default async function retrieve(url: string, redirectURLs: string[], vers
   }
 
 
-  return request(urlToFetch, redirectURLs, requestOptions)
+  return requestWithTimeout(requestTimeout, urlToFetch, redirectURLs, requestOptions)
 }

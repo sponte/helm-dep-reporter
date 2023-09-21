@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import smeverMatch from 'semver-match';
-import { Accordion, Container, Spinner } from "react-bootstrap";
+import { Accordion, Alert, Container, Spinner } from "react-bootstrap";
 import HelmChart from "./HelmChart";
 import { Log } from "./Log";
 
@@ -20,6 +20,7 @@ const logger = Log(HelmRepository)
 export function HelmRepository(props: HelmRepositoryProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [repo, setRepo] = useState<IHelmRepository>();
+  const [error, setError] = useState()
   const [redirects, setRedirects] = useState([]);
   const [activeChart, setActiveChart] = useState<string>('');
 
@@ -43,9 +44,11 @@ export function HelmRepository(props: HelmRepositoryProps) {
 
       // logger(Object.keys(parsed.entries))
       setRepo(responseData.data);
-      setLoading(false)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to download repository details');
+      setError(err);
+    } finally {
+      setLoading(false);
     }
   }, [props]);
 
@@ -61,6 +64,11 @@ export function HelmRepository(props: HelmRepositoryProps) {
     <Spinner animation="grow" />
     Loading charts from {props.repositoryUrl}
   </Container>
+
+  if (error) return <Alert variant="danger">
+    <Alert.Heading>Error retrieving chart</Alert.Heading>
+    {error}
+  </Alert>
 
   if (!repo) return <></>; // <Spinner animation="border" />
 

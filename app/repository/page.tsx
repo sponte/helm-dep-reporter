@@ -8,7 +8,6 @@ export default function Repository() {
   const searchParams = useSearchParams()
   const repositoryUrl = searchParams?.get('url')
 
-
   if (!repositoryUrl) return <Container>
     <Row>
       <Alert variant="danger">

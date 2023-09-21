@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { parse } from 'yaml';
+import yaml from 'js-yaml'
 import retrieve from './lib/registry-fetch'
 import { Cache } from 'file-system-cache';
 import fs from 'fs';
@@ -10,9 +11,13 @@ const yamlParsingCache = new Cache({
   ttl: 60 * 60 * 24 * 7 // 1 week
 })
 
-const yamlParse = (data: string) => {
-  console.debug('yamlParse')
-  return parse(data);
+const yamlParse = async (data: string) => {
+  const duration = new Date().getTime()
+
+  const result = yaml.load(data);
+  console.log('jsYamlPromise', new Date().getTime() - duration);
+  return result;
+
 }
 
 const parseYamlWithCache = (cacheKey: string, data: string) => {
