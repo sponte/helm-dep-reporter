@@ -45,18 +45,18 @@ export interface IHelmChartDependency {
 }
 
 export interface IHelmChart {
-  annotations: Map<string, string>
-  apiVersion: string
-  appVersion: string
-  created: string
-  description: string
-  digest: string
-  home: string
-  icon: string
-  keywords: string[]
-  maintainers: { name: string, email: string, url: string }[]
+  annotations?: Map<string, string>
+  apiVersion?: string
+  appVersion?: string
+  created?: string
+  description?: string
+  digest?: string
+  home?: string
+  icon?: string
+  keywords?: string[]
+  maintainers?: { name: string, email: string, url: string }[]
   name: string
-  sources: string[]
+  sources?: string[]
   urls: string[]
   version: string
   dependencies: IHelmChartDependency[]
@@ -138,12 +138,18 @@ export async function retrieveHelmRepositoryDetails(originalURL: string, req: Ne
     //   const returnValue = data
     //   return returnValue;
     // }));
+
     resolve(response.text().then((rt: string) => parseYamlWithCache(response!.url, rt)).then((data: IHelmRepository) => {
+      const projectedEntries = Object.fromEntries(Object.entries(data.entries).map(([key, value]) => [key, value.map((v: any) => ({
+        version: v.version,
+        dependencies: v.dependencies,
+        name: v.name,
+        urls: v.urls,
+      }))]))
+
       const returnValue = {
         apiVersion: data.apiVersion,
-        entries: {
-          ...data.entries,
-        },
+        entries: projectedEntries,
         generated: data.generated,
         comments: data.comments
       }
