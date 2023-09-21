@@ -71,7 +71,7 @@ enum DownloadType {
 }
 
 
-async function requestWithTimeout<T extends Parameters<typeof request>>(timeout: number, ...args: T): Promise<Response> {
+async function requestWithTimeout<T extends Parameters<typeof request>>(timeout: number, ...args: T): Promise<void | Response> {
   return asyncCallWithTimeout(request.apply(null, args), timeout);
 }
 
@@ -90,6 +90,8 @@ export default async function retrieve(url: string, redirectURLs: string[], vers
 
     return requestWithTimeout(requestTimeout, urlToFetch, redirectURLs, requestOptions)
       .then(r => {
+        if (!r) return r;
+
         if (r.status === 401) {
           const auth = r.headers.get('www-authenticate');
           const authParsed = new parsers.WWW_Authenticate(auth);
@@ -97,19 +99,19 @@ export default async function retrieve(url: string, redirectURLs: string[], vers
 
           let fetchOptions: RequestInit = { ...requestOptions, headers: {} }
           return requestWithTimeout(requestTimeout, authParsed.parms.realm + '?service=' + authParsed.parms.service + '&scope=' + authParsed.parms.scope, redirectURLs, fetchOptions)
-            .then(r => r.json())
+            .then(r => r?.json())
             .then(r => {
               fetchOptions.headers = { ...fetchOptions.headers, Authorization: authParsed.scheme + " " + r.token };
               return requestWithTimeout(requestTimeout, urlToFetch, redirectURLs, fetchOptions)
             })
-            .then(r => r.json())
+            .then(r => r?.json())
             .then(r => { console.log(r); return r })
             .then(r => match(version, r.tags))
             .then(r => {
               fetchOptions.headers = { ...fetchOptions.headers, Accept: DownloadType.ImageManifest }
               return requestWithTimeout(requestTimeout, ociToHttps(url, '/manifests/' + r), redirectURLs, fetchOptions)
             })
-            .then(r => r.json())
+            .then(r => r?.json())
             .then(r => options?.downloadConfig ? r.config : r.layers.find((l: any) => l.mediaType === DownloadType.Chart))
             .then(r => requestWithTimeout(requestTimeout, ociToHttps(url, '/blobs/' + r.digest), redirectURLs, fetchOptions))
         }

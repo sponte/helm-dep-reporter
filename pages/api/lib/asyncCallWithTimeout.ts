@@ -5,7 +5,7 @@
  * @param {number} timeLimit Time limit to attempt function in milliseconds
  * @returns {Promise<any> | undefined} Resolved promise for async function call, or an error if time limit reached
  */
-export const asyncCallWithTimeout = async <T>(asyncPromise: Promise<T>, timeLimit: number): Promise<T> => {
+export const asyncCallWithTimeout = async <T>(asyncPromise: Promise<T>, timeLimit: number): Promise<void | Awaited<T>> => {
   let timeoutHandle: NodeJS.Timeout;
   let duration = new Date().getTime();
 
