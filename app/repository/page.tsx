@@ -28,7 +28,6 @@ export default function Repository() {
     <Row>
       <HelmRepository
         repositoryUrl={repositoryUrl}
-        domainsCallback={() => { }}
       />
     </Row>
   </Container>

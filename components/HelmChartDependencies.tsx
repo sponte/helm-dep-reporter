@@ -1,8 +1,6 @@
-import { useState } from "react";
-import HelmChart from "./HelmChart";
-import { Alert, Collapse, ListGroup } from "react-bootstrap";
+import { Alert, ListGroup } from "react-bootstrap";
 import { Log } from "./Log";
-import { IHelmChart, IHelmChartDependency, IHelmRepository } from "@/pages/api/repo";
+import { IHelmChartDependency } from "@/pages/api/repo";
 import { HelmChartDependency } from "./HelmChartDependency";
 
 
@@ -13,7 +11,7 @@ interface HelmChartDependenciesProps {
   repoUrl: string
   reportRecursiveDependencies?: boolean
   fetchDetails?: boolean
-  domainsCallback: (domains: string[]) => void
+  domainsCallback?: (domains: string[]) => void
   analysisStartedCallback?: (name: string) => void
   analysisFinishedCallback?: (name: string) => void
 }
@@ -31,15 +29,15 @@ export function HelmChartDependencies({
   analysisStartedCallback,
   analysisFinishedCallback,
 }: HelmChartDependenciesProps) {
-  const [dependencyUrls, setDependencyUrls] = useState<string[]>([]);
 
   if (!dependencies) return <Alert className="mt-3 text-bg-light text-secondary">This chart has no dependencies</Alert>;
 
   return <div className={className}>
-    <h6 className="mt-3">Dependencies</h6>
+    <h5 className="mt-3">Dependencies</h5>
     <ListGroup>
-      {dependencies?.map((dep: any, index: number) => <ListGroup.Item key={dep.name + index}>
+      {dependencies?.map((dep: any, index: number) => <ListGroup.Item style={{ background: 'rgba(0,44,255,0.1)' }} key={dep.name}>
         <HelmChartDependency
+
           analysisStartedCallback={analysisStartedCallback}
           analysisFinishedCallback={analysisFinishedCallback}
           charts={charts}

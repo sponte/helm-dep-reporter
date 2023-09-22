@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Container, Row, Spinner } from "react-bootstrap";
 import { HelmChartDependencies } from "./HelmChartDependencies";
-import HelmChartDetailed from "./HelmChartDetailed";
 import { useRouter } from "next/navigation";
 
 export interface HelmChartProps {
@@ -9,7 +8,7 @@ export interface HelmChartProps {
   internal?: boolean
   chart: any
   repositoryUrl: string
-  domainsCallback: (domains: string[]) => void
+  domainsCallback?: (domains: string[]) => void
 }
 
 export default function HelmChart({ chart, fetchDetails, domainsCallback, repositoryUrl: repoUrl, internal }: HelmChartProps) {
@@ -49,14 +48,6 @@ export default function HelmChart({ chart, fetchDetails, domainsCallback, reposi
       </Button>
     </Row>
     }
-
-    {/* {!internal && <>
-          <p>URLs:</p>
-          <ul>
-            {chart.urls.map((u: string) => <li key={u}>{u}</li>)}
-          </ul>
-          {fetchDetails && chart.urls.map((u: string) => <UrlTest domainsCallback={domainsCallback} key={u} url={u} />)}
-        </>} */}
 
     {!internal && fetchDetails && !chartDetails && <Spinner animation="border" />}
 

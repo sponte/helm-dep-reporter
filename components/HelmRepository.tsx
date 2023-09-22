@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import smeverMatch from 'semver-match';
-import { Accordion, Alert, Container, Spinner } from "react-bootstrap";
+import { Accordion, Alert, Image } from "react-bootstrap";
 import HelmChart from "./HelmChart";
 import { Log } from "./Log";
 import { Loader } from "./Loader";
+import { IHelmChart } from "@/pages/api/repo";
 
 interface IHelmRepository {
-  entries: any[]
+  apiVersion: string
+  generated: string
+  entries: { [key: string]: IHelmChart[] }
 }
 
 interface HelmRepositoryProps {
   repositoryUrl: string
-  name?: string
-  version?: string
-  domainsCallback: (domains: string[]) => void
 }
 
 const logger = Log(HelmRepository)
@@ -22,12 +21,12 @@ export function HelmRepository(props: HelmRepositoryProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [repo, setRepo] = useState<IHelmRepository>();
   const [error, setError] = useState()
-  const [redirects, setRedirects] = useState([]);
-  const [activeChart, setActiveChart] = useState<string>('');
+  const [, setRedirects] = useState([]);
+  const [, setActiveChart] = useState<string>('');
 
   logger('HelmRepository', props)
 
-  const getHelmRepositoryDetails = useCallback(async (repo: string, name?: string, version?: string) => {
+  const getHelmRepositoryDetails = useCallback(async (repo: string, version?: string) => {
     let response;
     logger('getHelmRepositoryDetails', repo)
     try {
@@ -41,7 +40,6 @@ export function HelmRepository(props: HelmRepositoryProps) {
 
       const responseData = await response.json();
       setRedirects(responseData.redirectUrls);
-      props.domainsCallback?.(responseData.redirectUrls);
 
       // logger(Object.keys(parsed.entries))
       setRepo(responseData.data);
@@ -51,73 +49,60 @@ export function HelmRepository(props: HelmRepositoryProps) {
     } finally {
       setLoading(false);
     }
-  }, [props]);
+  }, []);
 
   useEffect(() => {
     if (!props.repositoryUrl) return;
     if (!props.repositoryUrl.match(/(https?|oci):\/\/[^/]+/i)) return;
 
-    getHelmRepositoryDetails(props.repositoryUrl, props.name, props.version);
-  }, [props.repositoryUrl, getHelmRepositoryDetails, props.name, props.version]);
+    getHelmRepositoryDetails(props.repositoryUrl);
+  }, [props.repositoryUrl, getHelmRepositoryDetails]);
 
 
   if (loading) return <Loader title={`Loading charts from ${props.repositoryUrl}`} />
 
   if (error) return <Alert variant="danger">
     <Alert.Heading>Error retrieving chart</Alert.Heading>
-    {error}
+    {(error as Error).message}
   </Alert>
 
   if (!repo) return <></>; // <Spinner animation="border" />
 
-  if (props.name && Object.keys(repo.entries).indexOf(props.name) === -1) return <div className="panel">Chart {props.name} not found in repository {props.repositoryUrl}</div>;
-
-  const chartNames = Object.keys(repo.entries);
-  const charts = Object.values(repo.entries);
-
-  logger('chartNames', chartNames)
-  logger('charts', charts)
-
-  const chartVersions = charts
-    .find((charts: any[]) => (charts[0].name === props.name));
-
-  const requiredVersion = smeverMatch(props.version || '*', chartVersions?.map((cv: any) => cv.version) || []);
-  const chartVersion = chartVersions?.find((cv: any) => cv.version === requiredVersion);
-
+  const charts = Object.entries(repo.entries);
+  console.log(repo.entries['common-library'])
 
   return (<>
-    <Accordion defaultActiveKey={props.name && props.repositoryUrl + '0evt'} className="mt-3 mb-3">
-      {/* {!props.name && <h2>Helm Repository {props.repositoryUrl}</h2>}
-      {props.name && <h2>Chart {props.name}:{props.version} in repository {props.repositoryUrl}</h2>} */}
-      {redirects.length > 1 && redirects.splice(1).map(r => <p key={r}>Redirect: {r}</p>)}
-
-      {!props.name && !props.version &&
-        <>
-          <Accordion >
-            {chartNames.map((chartName: string, index: number) =>
-              <Accordion.Item key={index} eventKey={index + 'chartName'}>
-                <Accordion.Header>{chartName}</Accordion.Header>
-                <Accordion.Body style={{ padding: 0 }}>
-                  <Accordion flush>
-                    {charts[index].map((chartVersion: any, index2: number) =>
-                      <Accordion.Item key={index2} eventKey={index + 'chartName' + index2 + 'chartVersion'}>
-                        <Accordion.Header >{chartVersion.version}</Accordion.Header>
-                        <Accordion.Body onEntered={() => setActiveChart(index + 'chartName' + index2 + 'chartVersion')}>
-                          <HelmChart
-                            chart={chartVersion}
-                            repositoryUrl={props.repositoryUrl}
-                            domainsCallback={props.domainsCallback}
-                          />
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    )}
-                  </Accordion>
-                </Accordion.Body>
-              </Accordion.Item>
-            )}
-          </Accordion>
-        </>
-      }
+    <Accordion defaultActiveKey={props.repositoryUrl + '0evt'} className="mt-3 mb-3">
+      <Accordion >
+        {charts.map(([chartName, chartVersions], index: number) =>
+          <Accordion.Item key={chartName} eventKey={index + 'chartName'}>
+            <Accordion.Header>
+              <Image
+                src={chartVersions[0].icon}
+                alt='chart logo'
+                className="me-2"
+                style={{ width: '1.5rem', height: '1.5rem' }}
+              />
+              {chartName}
+            </Accordion.Header>
+            <Accordion.Body style={{ padding: 0 }}>
+              <Accordion flush>
+                {chartVersions.map((chartVersion: IHelmChart, cvIndex: number) =>
+                  <Accordion.Item key={chartVersion.version} eventKey={index + 'chartName' + cvIndex + 'chartVersion'}>
+                    <Accordion.Header >{chartVersion.version}</Accordion.Header>
+                    <Accordion.Body onEntered={() => setActiveChart(index + 'chartName' + cvIndex + 'chartVersion')}>
+                      <HelmChart
+                        chart={chartVersion}
+                        repositoryUrl={props.repositoryUrl}
+                      />
+                    </Accordion.Body>
+                  </Accordion.Item>
+                )}
+              </Accordion>
+            </Accordion.Body>
+          </Accordion.Item>
+        )}
+      </Accordion>
     </Accordion >
   </>);
 }

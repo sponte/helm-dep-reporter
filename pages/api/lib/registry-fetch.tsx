@@ -6,6 +6,12 @@ import { fetchBuilder, FileSystemCache } from 'node-fetch-cache';
 import fs from 'fs';
 import { asyncCallWithTimeout } from './asyncCallWithTimeout';
 
+export class ResponseError extends Error {
+  constructor(message: string, public response: Response) {
+    super(message);
+  }
+}
+
 const fetch = fetchBuilder.withCache(new FileSystemCache({
   cacheDirectory: fs.mkdtempSync('/tmp/.fetch-cache'),
   ttl: 60 * 60 * 1000 // 1 hour,
@@ -51,6 +57,17 @@ async function request(url: string, redirectUrls: string[], options?: RequestIni
     console.log('Response failure, trying again, current status: %d', response.status)
     response = await fetch(redirectUrls[redirectUrls.length - 1], requestOptions)
     retryCount++
+  }
+
+  if (response.status === 401) {
+    console.log('Authentication request')
+    return response
+  }
+
+  console.debug('Response status', response.status)
+  if (response.status !== 200) {
+    console.log('Response failure, giving up, current status: %d', response.status)
+    throw new ResponseError('Response failure', response)
   }
 
   console.debug('Response length', response.headers.get('content-length'))

@@ -4,6 +4,7 @@ import yaml from 'js-yaml'
 import retrieve from './lib/registry-fetch'
 import { Cache } from 'file-system-cache';
 import fs from 'fs';
+import { Response } from 'node-fetch';
 
 const yamlParsingCache = new Cache({
   basePath: fs.mkdtempSync('/tmp/.fetch-cache'),
@@ -78,23 +79,31 @@ export type IHelmRepositoryResponse = {
   status: Number
   redirectUrls: string[]
 }
+interface ErrorResponse {
+  error?: any
+}
 
 export default async function apiRepoHandler(
   req: NextApiRequest,
-  res: NextApiResponse<IHelmRepositoryResponse>
+  res: NextApiResponse<IHelmRepositoryResponse | ErrorResponse>
 ) {
   const originalURL = req.query.url as string;
   const headRequest = Object.keys(req.query).indexOf('head') !== -1
 
-  const { response, redirectUrls, dataPromise }: { response: any; redirectUrls: string[]; dataPromise: Promise<IHelmRepository>; } = await retrieveHelmRepositoryDetails(originalURL, req, headRequest);
-
-  res
-    .status(response.status)
-    .json({
-      status: response.status,
-      redirectUrls: redirectUrls,
-      data: (await dataPromise)
-    })
+  retrieveHelmRepositoryDetails(originalURL, req, headRequest)
+    .then(async ({ response, redirectUrls, dataPromise }) => res
+      .status(response ? response.status : 200)
+      .json({
+        status: response ? response.status : 200,
+        redirectUrls: redirectUrls,
+        data: (await dataPromise)
+      }))
+    .catch((err: any) => res
+      .status(err.response.status)
+      .json({
+        error: err.message,
+        status: err.response.status
+      }))
 }
 
 export async function retrieveHelmRepositoryDetails(originalURL: string, req: NextApiRequest, headRequest: boolean) {
@@ -134,14 +143,11 @@ export async function retrieveHelmRepositoryDetails(originalURL: string, req: Ne
       })
     }
 
-    // resolve(response.text().then((data: string) => {
-    //   const returnValue = data
-    //   return returnValue;
-    // }));
-
     resolve(response.text().then((rt: string) => parseYamlWithCache(response!.url, rt)).then((data: IHelmRepository) => {
       const projectedEntries = Object.fromEntries(Object.entries(data.entries).map(([key, value]) => [key, value.map((v: any) => ({
         version: v.version,
+        description: v.description,
+        icon: v.icon,
         dependencies: v.dependencies,
         name: v.name,
         urls: v.urls,
@@ -161,6 +167,6 @@ export async function retrieveHelmRepositoryDetails(originalURL: string, req: Ne
 
 export const config = {
   api: {
-    responseLimit: '6mb',
+    responseLimit: '2mb',
   },
 }
